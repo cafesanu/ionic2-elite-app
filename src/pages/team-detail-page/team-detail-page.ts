@@ -1,9 +1,9 @@
 import {Component} from "@angular/core";
-import {NavController, NavParams} from "ionic-angular";
+import {NavController, NavParams, AlertController, ToastController} from "ionic-angular";
 import * as _ from "lodash";
 import {EliteApi} from "../../shared/shared";
 import {GamePage} from "../pages";
-import * as moment from 'moment';
+import * as moment from "moment";
 
 @Component({
     selector: 'page-team-detail-page',
@@ -14,12 +14,17 @@ export class TeamDetailPage {
     games: any[];
     team: any;
     teamStanding: any;
+    isFollowing: boolean = false;
+    dateFilter: string;
+    useDateFilter: boolean = false;
     private tournamentData: any;
 
 
     constructor(private navCtrl: NavController,
                 private navParams: NavParams,
-                private eliteApi: EliteApi) {
+                private eliteApi: EliteApi,
+                private toastController: ToastController,
+                private alertController: AlertController) {
         this.team = this.navParams.data;
         this.tournamentData = this.eliteApi.getCurrentTournament();
         this.games = _.chain(this.tournamentData.games)
@@ -69,7 +74,48 @@ export class TeamDetailPage {
     }
 
     dateChanged() {
-        this.games = _.filter(this.games, g => moment(g.time).isSame(this.dateFilter, 'day'));
+        if(this.useDateFilter) {
+            this.games = _.filter(this.allGames, g => moment(g.time).isSame(this.dateFilter, 'day'));
+        } else {
+            this.games = this.allGames;
+        }
+    }
+
+    isGameWon(game){
+        return game.scoreDisplay.indexOf('W') === 0;
+    }
+
+    getWorL(game){
+        return game.scoreDisplay ? game.scoreDisplay[0] : ''; 
+    }
+
+    toggleFollow() {
+        if(this.isFollowing) {
+            let confirm = this.alertController.create({
+                title: 'Unfollow?',
+                message: "Are you sure you want to unfollow?",
+                buttons: [{
+                    text: 'Yes',
+                    handler: () => {
+                        this.isFollowing = false;
+                        // @todo Persist
+
+                        let toast = this.toastController.create({
+                            message: 'You have unfollowed this team',
+                            duration: 2 * 1000,
+                            position: 'bottom'
+                        })
+                        toast.present();
+                    }
+                }, {
+                    text: 'No'
+                }]
+            })
+            confirm.present();
+        } else {
+            this.isFollowing = true;
+            // @todo Persist
+        }
     }
 
 }
