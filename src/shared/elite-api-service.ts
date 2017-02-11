@@ -7,7 +7,8 @@ import { Observable } from 'rxjs/Observable'
 @Injectable()
 export class EliteApi {
     private baseUrl = 'https://elite-db78e.firebaseio.com/';
-    currentTournament: any = {};
+    private currentTournament: any = {};
+    private tournamentData = {};
 
     constructor(private http: Http) {}
 
@@ -18,15 +19,25 @@ export class EliteApi {
         });
     }
 
-    getTournamentData(tournamentId) : Observable<any> {
+    getTournamentData(tournamentId, forceRefresh: Boolean = false) : Observable<any> {
+        if(!forceRefresh && this.tournamentData[tournamentId]) {
+            this.currentTournament = this.tournamentData[tournamentId];
+            return Observable.of(this.currentTournament);
+        }
         return this.http.get(`${this.baseUrl}/tournaments-data/${tournamentId}.json`)
-            .map((response: Response) => {
-                this.currentTournament = response.json();
+            .map(response => {
+                console.log(this.tournamentData);
+                this.tournamentData[tournamentId] = response.json();
+                this.currentTournament = this.tournamentData[tournamentId];
                 return this.currentTournament;
             })
     }
 
     getCurrentTournament() {
         return this.currentTournament;
+    }
+
+    refreshCurrentTournament() {
+        return this.getTournamentData(this.currentTournament.tournament.id, true);
     }
 }

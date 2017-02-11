@@ -1,8 +1,11 @@
-import {Component} from "@angular/core";
-import {NavController, NavParams, AlertController, ToastController} from "ionic-angular";
+import { Component } from "@angular/core";
+import { NavController, NavParams, AlertController, ToastController } from "ionic-angular";
 import * as _ from "lodash";
-import {EliteApi} from "../../shared/shared";
-import {GamePage} from "../pages";
+import {
+    EliteApi,
+    UserSettings
+} from "../../shared/shared";
+import { GamePage } from "../pages";
 import * as moment from "moment";
 
 @Component({
@@ -12,19 +15,24 @@ import * as moment from "moment";
 export class TeamDetailPage {
     allGames: any[];
     games: any[];
-    team: any;
-    teamStanding: any;
+    team: any = {};
+    teamStanding: any = {};
     isFollowing: boolean = false;
     dateFilter: string;
     useDateFilter: boolean = false;
     private tournamentData: any;
 
 
-    constructor(private navCtrl: NavController,
-                private navParams: NavParams,
-                private eliteApi: EliteApi,
-                private toastController: ToastController,
-                private alertController: AlertController) {
+    constructor(
+        private navCtrl: NavController,
+        private navParams: NavParams,
+        private eliteApi: EliteApi,
+        private userSettings: UserSettings,
+        private toastController: ToastController,
+        private alertController: AlertController) {
+    }
+
+    ionViewDidLoad() {
         this.team = this.navParams.data;
         this.tournamentData = this.eliteApi.getCurrentTournament();
         this.games = _.chain(this.tournamentData.games)
@@ -48,10 +56,7 @@ export class TeamDetailPage {
         this.teamStanding = _.find(this.tournamentData.standings, {
             teamId: this.team.id
         });
-    }
-
-    ionViewDidLoad() {
-        console.log('ionViewDidLoad TeamDetailPage');
+        this.userSettings.isFavoriteTeam(this.team.id).then(isFollowing => this.isFollowing = isFollowing);
     }
 
     getScoreDisplay(isTeam1, team1Score, team2Score) {
@@ -74,23 +79,23 @@ export class TeamDetailPage {
     }
 
     dateChanged() {
-        if(this.useDateFilter) {
+        if (this.useDateFilter) {
             this.games = _.filter(this.allGames, g => moment(g.time).isSame(this.dateFilter, 'day'));
         } else {
             this.games = this.allGames;
         }
     }
 
-    isGameWon(game){
+    isGameWon(game) {
         return game.scoreDisplay.indexOf('W') === 0;
     }
 
-    getWorL(game){
-        return game.scoreDisplay ? game.scoreDisplay[0] : ''; 
+    getWorL(game) {
+        return game.scoreDisplay ? game.scoreDisplay[0] : '';
     }
 
     toggleFollow() {
-        if(this.isFollowing) {
+        if (this.isFollowing) {
             let confirm = this.alertController.create({
                 title: 'Unfollow?',
                 message: "Are you sure you want to unfollow?",
@@ -98,13 +103,13 @@ export class TeamDetailPage {
                     text: 'Yes',
                     handler: () => {
                         this.isFollowing = false;
-                        // @todo Persist
+                        this.userSettings.unfavoriteTeam(this.team);
 
                         let toast = this.toastController.create({
                             message: 'You have unfollowed this team',
                             duration: 2 * 1000,
                             position: 'bottom'
-                        })
+                        });
                         toast.present();
                     }
                 }, {
@@ -114,8 +119,19 @@ export class TeamDetailPage {
             confirm.present();
         } else {
             this.isFollowing = true;
-            // @todo Persist
+            this.userSettings.favoriteTeam(
+                this.team,
+                this.tournamentData.tournament.id,
+                this.tournamentData.tournament.name
+            );
         }
+    }
+
+    refreshAll($eventRefresher) {
+        this.eliteApi.refreshCurrentTournament().subscribe(() => {
+            $eventRefresher.complete();
+            this.ionViewDidLoad();
+        })
     }
 
 }

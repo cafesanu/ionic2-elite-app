@@ -1,5 +1,6 @@
 import { NgModule, ErrorHandler } from '@angular/core';
 import { IonicApp, IonicModule, IonicErrorHandler } from 'ionic-angular';
+import { Storage } from '@ionic/storage';
 import { MyApp } from './app.component';
 import { GamePage } from '../pages/pages';
 import { MyTeamsPage } from '../pages/pages';
@@ -34,6 +35,12 @@ import { TournamentsPage } from '../pages/pages';
     TeamsPage,
     TournamentsPage
   ],
-  providers: [{provide: ErrorHandler, useClass: IonicErrorHandler}]
+  providers: [{
+    provide: ErrorHandler,
+    useClass: IonicErrorHandler
+  }, {
+    provide: Storage,
+    useClass: Storage
+  }]
 })
 export class AppModule {}
